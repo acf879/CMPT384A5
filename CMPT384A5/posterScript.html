@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<link rel="shortcut icon" href="#">
+<!-- Assignment for CMPT384A5 by Ashton Fritz and Marco Sin-->
+    <script src="https://d3js.org/d3.v7.min.js">
+    </script>
+</head>
+
+<body>
+    <script> // Load in json file
+
+    var JSON_FILE = "/boardgames_40.json";
+       d3.json(JSON_FILE).then(function(data){
+        console.log(data);
+       });
+    </script>
+</body>
