@@ -1,7 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-import scipy as sp
+#import scipy as sp
 
 def makeAdjMatrix(PATH: str = "boardgames_100.json"):
     """
@@ -41,27 +41,26 @@ def svd(A: np.ndarray):
     s = np.diag(s)
     return u,s,v_t
 
-def reconstructSVD(u: np.ndarray, s: np.ndarray, v_t: np.ndarray):
-    """
-    This function takes in the singular value decomposition of a matrix A and
-    returns the matrix A.
-    """
-    return np.dot(np.dot(u,s),v_t)
 
-def reconstructSVDTruncated(u: np.ndarray, s: np.ndarray, v_t: np.ndarray, k: int):
+def reconstructSVD(u: np.ndarray, s: np.ndarray, v_t: np.ndarray, k: int = -1):
     """
     This function takes in the singular value decomposition of a matrix A and
     returns the matrix A, truncated to the first k singular values.
+    If k is not specified will fully reconstruct
     """
+    if k == -1:
+        return np.dot(np.dot(u,s),v_t)
     return np.dot(np.dot(u[:,:k],s[:k,:k]),v_t[:k,:])
 
-def reconstruct(A: np.ndarray, k: int):
+def reconstructPartial(A: np.ndarray, k: int = -1):
     """
     This function takes in an adjacency matrix A and returns the matrix A,
     truncated to the first k singular values.
     """
     u,s,v_t = np.linalg.svd(A)
     s = np.diag(s)
+    if k == -1:
+        return np.dot(np.dot(u,s),v_t)
     return np.dot(np.dot(u[:,:k],s[:k,:k]),v_t[:k,:])
 
 def reconstructError(A: np.ndarray, k: int):
@@ -70,16 +69,16 @@ def reconstructError(A: np.ndarray, k: int):
     the original matrix A and the matrix A, truncated to the first k singular
     values.
     """
-    return np.linalg.norm(A - reconstruct(A, k))
+    return np.linalg.norm(A - reconstructPartial(A, k))
+
+
 
 def main():
     PATH = "boardgames_40.json"
     adj_matrix = makeAdjMatrix(PATH)
     print(adj_matrix)
+    print("\n", np.round(reconstructPartial(adj_matrix, 20), 5))
 
-    u,s,v_t = svd(adj_matrix)
-    print("\n", np.round(reconstructSVD(u,s,v_t), 5))
-    
 
 if __name__ == "__main__":
     main()
