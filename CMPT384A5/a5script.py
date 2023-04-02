@@ -34,7 +34,7 @@ def makeAdjMatrix(PATH: str = "boardgames_100.json"):
 
 def svd(A: np.ndarray):
     """
-    This function takes in an adjacency matrix A and returns the singular value
+    This function takes in an adjacency matrix A and returns the `si`ngular value
     decomposition of A.
     """
     u,s,v_t = np.linalg.svd(A)  # Compute the SVD
@@ -76,6 +76,16 @@ def projectionOnVector(v: np.ndarray, w: np.ndarray):
     onto w.
     """
     return np.dot(v,w)/np.dot(w,w)*w  # Compute the projection
+
+def projectMatrixOnVectors(A: np.ndarray, w: np.ndarray):
+    """
+    This function takes in a matrix A and a eigen-vector matrix w and returns the projection
+    of A onto w.
+    """
+    B = np.zeros(A.shape)  # Initialize the projection matrix
+    for i in range(len(A[0])):
+        B[:,i] = projectionOnVector(A[:,i],w[:,i])
+    return B  # Return the projection matrix
 
 # Test functions
 def test_projectionOnVector():
@@ -140,10 +150,12 @@ def main():
     
     PATH = "boardgames_40.json"
     adj_matrix = makeAdjMatrix(PATH)
-    reconstructed_adj3 = reconstructPartial(adj_matrix,3)
+    u,s,v_t = svd(adj_matrix)
+    adj_matrix_proj = projectMatrixOnVectors(adj_matrix, v_t)
+
     fig = plt.figure()
     ax = plt.axes(projection='3d')
-    plt.plot(reconstructed_adj3[:,0], reconstructed_adj3[:,1], reconstructed_adj3[:,2], 'o') # Fun fact: this is nearly a plane although the complete one is just in the corners
+    plt.plot(adj_matrix_proj[0,:], adj_matrix_proj[1,:], adj_matrix_proj[2,:], 'o', color='black') 
     plt.show()
     
     
