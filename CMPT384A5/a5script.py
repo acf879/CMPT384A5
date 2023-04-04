@@ -15,8 +15,10 @@ def makeAdjMatrix(PATH: str = "boardgames_100.json"):
     num_nodes = int(PATH[11:-5])  # Get the number of nodes from the file name
     df = pd.read_json(PATH)  # Read the JSON file into a DataFrame
     id_to_idx = {}  # Dictionary mapping ID to index
+    inx_to_id = {}
     for i, id in enumerate(df.loc[:,'id']):  # Iterate over the IDs in the DataFrame
         id_to_idx[id] = i
+        inx_to_id[i] = id
     df['recommendations'] = df['recommendations'].apply(lambda x: x['fans_liked'])  # Get the list of recommendations
     adj_matrix = np.zeros((num_nodes,num_nodes))  # Initialize the adjacency matrix
     for index in range(num_nodes):  # Iterate over the rows of the DataFrame
@@ -30,7 +32,7 @@ def makeAdjMatrix(PATH: str = "boardgames_100.json"):
                 adj_matrix[v][w] = 1
             except:
                 pass  #print(f"ID: {endpoint} not in top 100, discarded")
-    return adj_matrix
+    return adj_matrix, id_to_idx, inx_to_id
 
 def svd(A: np.ndarray):
     """
@@ -101,7 +103,7 @@ def test_reconstructError():
     This function tests the reconstructError function.
     """
     PATH = "boardgames_40.json"
-    adj_matrix = makeAdjMatrix(PATH)
+    adj_matrix,_,_= makeAdjMatrix(PATH)
     print(reconstructError(adj_matrix, 3))
 
 def test_reconstructSVD():
@@ -109,7 +111,7 @@ def test_reconstructSVD():
     This function tests the reconstructSVD function.
     """
     PATH = "boardgames_40.json"
-    adj_matrix = makeAdjMatrix(PATH)
+    adj_matrix,_,_ = makeAdjMatrix(PATH)
     u,s,v_t = svd(adj_matrix)
     print(reconstructSVD(u,s,v_t,3))
 
@@ -118,7 +120,7 @@ def test_reconstructPartial():
     This function tests the reconstructPartial function.
     """
     PATH = "boardgames_40.json"
-    adj_matrix = makeAdjMatrix(PATH)
+    adj_matrix,_,_ = makeAdjMatrix(PATH)
     print(reconstructPartial(adj_matrix,3))
 
 def test_svd():
@@ -126,7 +128,7 @@ def test_svd():
     This function tests the svd function.
     """
     PATH = "boardgames_40.json"
-    adj_matrix = makeAdjMatrix(PATH)
+    adj_matrix,_,_ = makeAdjMatrix(PATH)
     print(svd(adj_matrix))
 
 def test_makeAdjMatrix():
@@ -136,29 +138,92 @@ def test_makeAdjMatrix():
     PATH = "boardgames_40.json"
     print(makeAdjMatrix(PATH))
 
+def getColor(i: int, PATH: str):
+  df = pd.read_json(PATH)
+  colors = [
+    "pink", "orangered", "darksalmon", "saddlebrown", "darkorange",
+    "greenyellow", "green", "turqoise", "teal", "cyan", "skyblue", "grey",
+    "blue", "violet"
+  ]
+
+  def getTypeCount():
+    type_counts = {}
+    for _types in df.types:
+      _types = _types["categories"]
+      for _type in _types:
+        _type = _type["name"]
+        if _type not in list(type_counts.keys()):
+          type_counts[_type] = 1
+        else:
+          type_counts[_type] += 1
+
+    type_counts = sorted(type_counts.items(), key=lambda x: x[1], reverse=True)
+    temp = {}
+
+    for t in type_counts:
+      temp[t[0]] = t[1]
+    type_counts = temp
+    return type_counts
+
+  type_counts = getTypeCount()
+
+  def get_most_common_cat(variables):
+    _type = variables[0]
+    for var in variables:
+      if type_counts[_type] < type_counts[var]:
+        _type = var
+    return _type
+
+  def get_all_cat(i: int):
+    var = []
+    for j in range(len(df.types[i]["categories"])):
+      var.append(df.types[i]["categories"][j]["name"])
+    return var
+
+  cats = list(type_counts.keys())
+  var = get_most_common_cat(get_all_cat(i))
+  try:
+    mark_color = colors[cats.index(var)]
+  except:
+    mark_color = "black"
+  return mark_color, var
+
+
+def draw_plot(PATH):
+    colors = [
+        "pink", "orangered", "darksalmon", "saddlebrown", "darkorange",
+        "greenyellow", "green", "turqoise", "teal", "cyan", "skyblue", "grey",
+        "blue", "violet"
+    ]
+    
+    adj_matrix, id_to_idx, inx_to_id = makeAdjMatrix(PATH)
+    u,_,_ = svd(adj_matrix)
+    fig = plt.figure(1)
+    a = plt.axes(projection='3d')
+    #az = plt.axes(projection='2d') 
+    x = u[:,0]
+    y = u[:,1]
+    z = u[:,2]
+    _category_color = {}
+   
+    for i, point in enumerate(adj_matrix):
+        # Represent the datapoint in our new basis consisting of x,y,z
+        # AKA, the 3 most significant singular vectors of the data matrix
+        xs = np.dot(x, point)
+        ys = np.dot(y, point)
+        zs = np.dot(z, point)
+        _color, _category = getColor(i,PATH)
+        _category_color[_color] = _category
+        a.scatter(xs, ys, zs, color=_color)
+    plt.show()
+    print(_category_color)
+    
 
 
 def main():
-    """
-    test_makeAdjMatrix()
-    test_svd()
-    test_reconstructPartial()
-    test_reconstructSVD()
-    test_reconstructError()
-    test_projectionOnVector()
-    """
-    
-    PATH = "boardgames_40.json"
-    adj_matrix = makeAdjMatrix(PATH)
-    u,s,v_t = svd(adj_matrix)
-    adj_matrix_proj = projectMatrixOnVectors(adj_matrix, v_t)
+    PATH = "boardgames_100.json"
+    draw_plot(PATH)
 
-    fig = plt.figure()
-    ax = plt.axes(projection='3d')
-    plt.plot(adj_matrix_proj[0,:], adj_matrix_proj[1,:], adj_matrix_proj[2,:], 'o', color='black') 
-    plt.show()
-    
-    
 # Run the main function
 if __name__ == "__main__":
     main()
